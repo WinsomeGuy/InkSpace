@@ -14,5 +14,6 @@ A customizable EPUB reader for desktop. ( In development )
 
 ### Current UI design ( not implimented ) 
 
-<img width="965" height="571" alt="image" src="https://github.com/user-attachments/assets/b09e7bec-4f85-4838-888e-502445760ebf" />
+<img width="1499" height="871" alt="image" src="https://github.com/user-attachments/assets/b4547bb4-dc82-4d58-891a-250a6d107a6d" />
+
 
