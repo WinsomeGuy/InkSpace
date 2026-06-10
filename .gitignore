@@ -32,6 +32,6 @@ yarn.lock
 /playwright-report/
 /playwright/.cache/
 
-# Local AI learning and planning notes
+#learning and planning notes
 /LEARNING_LOG.md
 /INKSPACE_IDEAS.md
