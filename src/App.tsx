@@ -1,5 +1,3 @@
-import "./App.css";
-
 type TopbarProps = {
   title: string;
 };
@@ -23,6 +21,9 @@ function App() {
         <Topbar title={headLine} />
         <main className="library">
           <h1>Books will go here</h1>
+          <button className="button border px-4 py-2 rounded">
+            I'm a button
+          </button>
         </main>
       </div>
     </div>

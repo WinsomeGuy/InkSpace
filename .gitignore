@@ -32,6 +32,8 @@ yarn.lock
 /playwright-report/
 /playwright/.cache/
 
+test/screenshots
+
 #learning and planning notes
 /LEARNING_LOG.md
 /INKSPACE_IDEAS.md

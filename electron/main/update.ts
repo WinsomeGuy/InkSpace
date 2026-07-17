@@ -1,12 +1,15 @@
 import { app, ipcMain } from 'electron'
-import { createRequire } from 'node:module'
 import type {
   ProgressInfo,
   UpdateDownloadedEvent,
   UpdateInfo,
 } from 'electron-updater'
+// Pure cjs module does not support named exports, so we need to import the default export and access the autoUpdater property
+import updater from 'electron-updater'
 
-const { autoUpdater } = createRequire(import.meta.url)('electron-updater');
+const autoUpdater = updater.autoUpdater
+let cancellationToken = new updater.CancellationToken()
+let isDownloading = false
 
 export function update(win: Electron.BrowserWindow) {
 
@@ -34,17 +37,22 @@ export function update(win: Electron.BrowserWindow) {
     }
 
     try {
-      return await autoUpdater.checkForUpdatesAndNotify()
+      return await autoUpdater.checkForUpdates()
     } catch (error) {
-      return { message: 'Network error', error }
+      const resolvedError = error instanceof Error ? error : new Error('Network error')
+      return { message: resolvedError.message, error: resolvedError }
     }
   })
 
   // Start downloading and feedback on progress
   ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {
+    if (isDownloading) return
+
+    isDownloading = true
     startDownload(
       (error, progressInfo) => {
         if (error) {
+          isDownloading = false
           // feedback download error message
           event.sender.send('update-error', { message: error.message, error })
         } else {
@@ -53,10 +61,17 @@ export function update(win: Electron.BrowserWindow) {
         }
       },
       () => {
+        isDownloading = false
         // feedback update downloaded message
         event.sender.send('update-downloaded')
       }
     )
+  })
+
+  // Cancel downloading
+  ipcMain.handle('cancel-download', () => {
+    cancellationToken.cancel()
+    cancellationToken = new updater.CancellationToken();
   })
 
   // Install now
@@ -69,8 +84,24 @@ function startDownload(
   callback: (error: Error | null, info: ProgressInfo | null) => void,
   complete: (event: UpdateDownloadedEvent) => void,
 ) {
-  autoUpdater.on('download-progress', (info: ProgressInfo) => callback(null, info))
-  autoUpdater.on('error', (error: Error) => callback(error, null))
-  autoUpdater.on('update-downloaded', complete)
-  autoUpdater.downloadUpdate()
+  const onDownloadProgress = (info: ProgressInfo) => callback(null, info)
+  const onError = (error: Error) => {
+    cleanup()
+    callback(error, null)
+  }
+  const onDownloaded = (event: UpdateDownloadedEvent) => {
+    cleanup()
+    complete(event)
+  }
+
+  const cleanup = () => {
+    autoUpdater.off('download-progress', onDownloadProgress)
+    autoUpdater.off('error', onError)
+    autoUpdater.off('update-downloaded', onDownloaded)
+  }
+
+  autoUpdater.on('download-progress', onDownloadProgress)
+  autoUpdater.on('error', onError)
+  autoUpdater.once('update-downloaded', onDownloaded)
+  autoUpdater.downloadUpdate(cancellationToken)
 }
